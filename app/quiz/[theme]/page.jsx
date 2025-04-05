@@ -67,12 +67,12 @@ export default function Quiz() {
             </div>
             {!quizCompleted ? (
                 <>
-                    <h2 className="text-xl font-bold">{questions[current].question}</h2>
-                    <div className="mt-4 grid gap-2">
+                    <h2 className="text-xl font-bold text-center">{questions[current].question}</h2>
+                    <div className="mt-4 md:max-w-md mx-auto grid gap-2">
                         {questions[current].answers.map((ans, index) => (
                             <button
                                 key={index}
-                                className="px-4 py-2 bg-gray-200 rounded-lg"
+                                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-blue-500"
                                 onClick={() => handleAnswer(ans.correct)}
                             >
                                 {ans.text}
