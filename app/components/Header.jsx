@@ -7,7 +7,7 @@ export default function Header() {
         <span className="text-2xl font-bold text-blue-500 cursor-pointer">OnQuiz</span>
       </Link>
       <Link href="/classement">
-        <span className="text-lg text-gray-700 hover:text-blue-500 cursor-pointer">Classement</span>
+        <span className="border border-gray-700 rounded-md text-lg text-gray-700 shadow-md hover:border-blue-500 hover:text-blue-500 cursor-pointer px-2 py-1">Classement</span>
       </Link>
     </header>
   );

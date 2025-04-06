@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import { Inter } from 'next/font/google';
 import "./globals.css";
 
@@ -46,9 +47,10 @@ export default function RootLayout({ children }) {
       <meta name="twitter:title" content="OnQuiz - Application de Quiz Interactive | William Sart" />
       <meta name="twitter:description" content="OnQuiz est une application web interactive permettant aux utilisateurs de tester leurs connaissances sur divers thèmes." />
       </Head>
-      <body className="bg-gray-100 text-gray-900">
+      <body className="bg-gray-100 text-gray-800">
         <Header />
         {children}
+        <Footer />
       </body>
     </html>
   );
