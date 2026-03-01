@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../lib/db";
 
-interface Answer {
-  text: string;
-  correct: boolean;
-}
-
-interface Question {
-  id: number;
-  question: string;
-  answers: Answer[];
-}
-
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -25,10 +14,14 @@ export async function GET(req: Request) {
       [theme]
     );
 
-    const parsedQuestions: Question[] = (questions as any[]).map((question) => ({
-      ...question,
-      answers: JSON.parse(question.answers),
-    }));
+    const parsedQuestions = (questions as any[]).map((q) => {
+      const answersArray = JSON.parse(q.answers);
+      return {
+        id: q.id,
+        question: q.question,
+        answers: answersArray.map((ans: any) => ({ text: ans.text })),
+      };
+    });
 
     return NextResponse.json(parsedQuestions);
   } catch (error) {

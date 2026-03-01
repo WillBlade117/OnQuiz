@@ -6,11 +6,10 @@ import Link from "next/link";
 
 interface Answer {
   text: string;
-  correct: boolean;
 }
 
 interface Question {
-  id?: number;
+  id: number;
   question: string;
   answers: Answer[];
 }
@@ -22,9 +21,10 @@ export default function QuizPage() {
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
-  const [score, setScore] = useState(0);
   const [player, setPlayer] = useState("");
+  const [userAnswers, setUserAnswers] = useState<{questionId: number, answerIndex: number}[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [finalScore, setFinalScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,8 +47,11 @@ export default function QuizPage() {
       });
   }, [theme]);
 
-  const handleAnswer = (correct: boolean) => {
-    if (correct) setScore((prev) => prev + 1);
+  const handleAnswer = (answerIndex: number) => {
+    setUserAnswers((prev) => [
+      ...prev, 
+      { questionId: questions[current].id, answerIndex }
+    ]);
 
     if (current < questions.length - 1) {
       setCurrent((prev) => prev + 1);
@@ -65,14 +68,13 @@ export default function QuizPage() {
       const response = await fetch("/api/scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player, score, theme }),
+        body: JSON.stringify({ player, theme, answers: userAnswers }),
       });
 
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       
-      alert("Score enregistré avec succès !");
-      router.push("/classement");
+      setFinalScore(data.score);
     } catch (error) {
       alert("Erreur lors de la sauvegarde du score.");
     } finally {
@@ -132,7 +134,7 @@ export default function QuizPage() {
                 {questions[current].answers.map((ans, index) => (
                   <button
                     key={index}
-                    onClick={() => handleAnswer(ans.correct)}
+                    onClick={() => handleAnswer(index)}
                     className="group flex w-full items-center rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 text-left font-semibold text-slate-600 dark:text-slate-300 transition-all hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 active:scale-[0.98]"
                   >
                     <span className="mr-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800 transition-colors">
@@ -143,13 +145,13 @@ export default function QuizPage() {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : finalScore === null ? (
             <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-4xl shadow-inner">🏆</div>
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-4xl shadow-inner">🏁</div>
               <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white">Bien joué !</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white">Quiz terminé !</h2>
                 <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
-                  Score final : <span className="text-indigo-600 dark:text-indigo-400 text-3xl font-black">{score}</span> / {questions.length}
+                  Entre ton pseudo pour découvrir ton score et t'inscrire au classement.
                 </p>
               </div>
 
@@ -166,9 +168,25 @@ export default function QuizPage() {
                   disabled={isSubmitting}
                   className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 dark:hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-95"
                 >
-                  {isSubmitting ? "Envoi en cours..." : "Enregistrer mon score"}
+                  {isSubmitting ? "Calcul en cours..." : "Découvrir mon score"}
                 </button>
               </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-4xl shadow-inner">🏆</div>
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white">Bien joué {player} !</h2>
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
+                  Ton score final est de : <span className="text-indigo-600 dark:text-indigo-400 text-3xl font-black">{finalScore}</span> / {questions.length}
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/classement")}
+                className="w-full max-w-xs rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all active:scale-95"
+              >
+                Voir le classement
+              </button>
             </div>
           )}
         </div>
