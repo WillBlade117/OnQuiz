@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 
-// --- TYPES ---
 interface ScoreEntry {
   player: string;
   theme: string;
@@ -20,30 +19,28 @@ export default function Leaderboard() {
   const [theme, setTheme] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/leaderboard${theme ? `?theme=${theme}` : ""}`)
+    fetch(`/api/leaderboard?page=${page}${theme ? `&theme=${theme}` : ""}`)
       .then((res) => res.json())
       .then((data) => {
-        setScores(data);
+        setScores(data.scores || []);
+        setTotalItems(data.total || 0);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Erreur classement:", err);
         setLoading(false);
       });
-  }, [theme]);
-
-  const sortedScores = [...scores].sort((a, b) => b.score - a.score);
+  }, [theme, page]);
 
   const scoresPerPage = 10;
-  const totalPages = Math.ceil(sortedScores.length / scoresPerPage) || 1;
-  const paginatedScores = sortedScores.slice((page - 1) * scoresPerPage, page * scoresPerPage);
+  const totalPages = Math.ceil(totalItems / scoresPerPage) || 1;
 
   const getRankStyle = (index: number) => {
     const realRank = (page - 1) * scoresPerPage + index;
-    // Couleurs Or / Argent / Bronze adaptées au Dark Mode
     if (realRank === 0) return "bg-yellow-100 text-yellow-700 ring-yellow-400/30 dark:bg-yellow-900/30 dark:text-yellow-500 dark:ring-yellow-500/50";
     if (realRank === 1) return "bg-slate-200 text-slate-700 ring-slate-400/30 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/50";
     if (realRank === 2) return "bg-orange-100 text-orange-700 ring-orange-400/30 dark:bg-orange-900/30 dark:text-orange-500 dark:ring-orange-500/50";
@@ -105,12 +102,12 @@ export default function Leaderboard() {
               <tr>
                 <td colSpan={4} className="py-20 text-center text-slate-400 animate-pulse">Chargement des champions...</td>
               </tr>
-            ) : paginatedScores.length === 0 ? (
+            ) : scores.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-20 text-center text-slate-400">Aucun record pour le moment. Soyez le premier !</td>
               </tr>
             ) : (
-              paginatedScores.map((score, index) => (
+              scores.map((score, index) => (
                 <tr key={index} className="group transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-900/10">
                   <td className="px-6 py-4">
                     <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ring-1 ring-inset ${getRankStyle(index)}`}>
