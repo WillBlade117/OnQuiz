@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../lib/db";
+import { RowDataPacket } from "mysql2";
+
+interface ScoreRow extends RowDataPacket {
+  player: string;
+  score: number;
+  theme: string;
+  created_at: Date;
+}
+
+interface CountRow extends RowDataPacket {
+  total: number;
+}
 
 export async function GET(req: Request) {
   try {
@@ -22,10 +34,10 @@ export async function GET(req: Request) {
       paramsCount = [theme];
     }
 
-    const [scores] = await db.execute(queryScores, paramsScores);
-    const [countResult] = await db.execute(queryCount, paramsCount);
+    const [scores] = await db.execute<ScoreRow[]>(queryScores, paramsScores);
+    const [countResult] = await db.execute<CountRow[]>(queryCount, paramsCount);
     
-    const total = (countResult as any[])[0].total;
+    const total = countResult[0].total;
 
     return NextResponse.json({ scores, total });
   } catch (error) {
