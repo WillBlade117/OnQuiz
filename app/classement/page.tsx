@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { THEME_NAMES } from "../../lib/constants";
 
 interface ScoreEntry {
   player: string;
@@ -9,10 +10,7 @@ interface ScoreEntry {
   date: string;
 }
 
-const THEMES = [
-  "Culture", "Histoire", "Science", "Geographie", "Cinema",
-  "Sport", "Musique", "Jeux-Video", "Informatique", "Mythologie"
-];
+
 
 export default function Leaderboard() {
   const [scores, setScores] = useState<ScoreEntry[]>([]);
@@ -76,7 +74,7 @@ export default function Leaderboard() {
             }}
           >
             <option value="">Tous les thèmes</option>
-            {THEMES.map((t) => (
+            {THEME_NAMES.map((t) => (
               <option key={t} value={t.toLowerCase()}>{t}</option>
             ))}
           </select>
