@@ -23,10 +23,18 @@ export default function QuizPage() {
   const [current, setCurrent] = useState(0);
   const [player, setPlayer] = useState("");
   const [userAnswers, setUserAnswers] = useState<{questionId: number, answerIndex: number}[]>([]);
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const savedPlayer = localStorage.getItem("onquiz_player");
+    if (savedPlayer) {
+      setPlayer(savedPlayer);
+    }
+  }, []);
 
   useEffect(() => {
     if (!theme) return;
@@ -48,20 +56,29 @@ export default function QuizPage() {
   }, [theme]);
 
   const handleAnswer = (answerIndex: number) => {
+    if (selectedAnswerIndex !== null) return;
+    
+    setSelectedAnswerIndex(answerIndex);
+
     setUserAnswers((prev) => [
       ...prev, 
       { questionId: questions[current].id, answerIndex }
     ]);
 
-    if (current < questions.length - 1) {
-      setCurrent((prev) => prev + 1);
-    } else {
-      setQuizCompleted(true);
-    }
+    setTimeout(() => {
+      if (current < questions.length - 1) {
+        setCurrent((prev) => prev + 1);
+        setSelectedAnswerIndex(null);
+      } else {
+        setQuizCompleted(true);
+      }
+    }, 600);
   };
 
   const handleFinishQuiz = async () => {
     if (!player.trim()) return alert("Entrez votre pseudo !");
+    
+    localStorage.setItem("onquiz_player", player);
     
     setIsSubmitting(true);
     try {
@@ -110,6 +127,7 @@ export default function QuizPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 transition-colors duration-300">
       <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800">
         
+        {/* ... Header de la carte ... */}
         <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="mb-2 flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             <span>Thème : <span className="text-indigo-600 dark:text-indigo-400">{theme}</span></span>
@@ -125,24 +143,42 @@ export default function QuizPage() {
 
         <div className="p-6 md:p-8">
           {!quizCompleted ? (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div key={current} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <h2 className="text-center text-2xl font-black leading-tight text-slate-800 dark:text-white md:text-3xl italic">
                 "{questions[current].question}"
               </h2>
 
               <div className="grid gap-3">
-                {questions[current].answers.map((ans, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(index)}
-                    className="group flex w-full items-center rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 text-left font-semibold text-slate-600 dark:text-slate-300 transition-all hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 active:scale-[0.98]"
-                  >
-                    <span className="mr-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800 transition-colors">
-                      {String.fromCharCode(65 + index)}
-                    </span>
-                    {ans.text}
-                  </button>
-                ))}
+                {questions[current].answers.map((ans, index) => {
+                  const isSelected = selectedAnswerIndex === index;
+                  const isLocked = selectedAnswerIndex !== null;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleAnswer(index)}
+                      disabled={isLocked}
+                      className={`group flex w-full items-center rounded-xl border-2 p-4 text-left font-semibold transition-all duration-200
+                        ${isSelected 
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/20 scale-[0.98] dark:border-indigo-400 dark:bg-indigo-900/40 dark:text-indigo-300" 
+                          : isLocked
+                            ? "border-slate-100 bg-white/50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-600 opacity-70"
+                            : "border-slate-100 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-900/20 active:scale-[0.98]"
+                        }
+                      `}
+                    >
+                      <span className={`mr-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-colors
+                        ${isSelected
+                          ? "bg-indigo-500 text-white dark:bg-indigo-500"
+                          : "bg-slate-100 text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-600 dark:bg-slate-700 dark:text-slate-400 dark:group-hover:bg-indigo-900/50 dark:group-hover:text-indigo-300"
+                        }
+                      `}>
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      {ans.text}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : finalScore === null ? (
