@@ -1,26 +1,44 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../lib/db";
 import { RowDataPacket } from "mysql2";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
-interface DBQuestionRow extends RowDataPacket {
-  id: number;
-  answers: string;
-}
-
-interface AnswerPayload {
-  questionId: number;
-  answerIndex: number;
-}
+interface DBQuestionRow extends RowDataPacket { id: number; answers: string; }
+interface AnswerPayload { questionId: number; answerIndex: number; }
 
 export async function POST(req: Request) {
   try {
+    // 1. On récupère la session côté SERVEUR (impossible à falsifier)
+    const session = await getServerSession(authOptions);
+    
     const body = await req.json();
     const { player, theme, answers }: { player: string, theme: string, answers: AnswerPayload[] } = body;
 
-    if (!player || !theme || !Array.isArray(answers)) {
+    if (!theme || !Array.isArray(answers)) {
       return NextResponse.json({ error: "Données invalides" }, { status: 400 });
     }
 
+    let userId = null;
+    let finalPlayerName = player;
+
+    // 2. Si l'utilisateur est connecté, on va chercher son ID et on force son vrai pseudo
+    if (session?.user?.email) {
+      const [users] = await db.execute<RowDataPacket[]>(
+        "SELECT id, name FROM users WHERE email = ?",
+        [session.user.email]
+      );
+      if (users.length > 0) {
+        userId = users[0].id;
+        finalPlayerName = users[0].name;
+      }
+    }
+
+    if (!finalPlayerName) {
+      return NextResponse.json({ error: "Pseudo manquant" }, { status: 400 });
+    }
+
+    // 3. Calcul du score (inchangé)
     let calculatedScore = 0;
     const questionIds = answers.map((a) => a.questionId);
 
@@ -42,9 +60,10 @@ export async function POST(req: Request) {
       });
     }
 
+    // 4. On insère avec le user_id (qui sera NULL si le joueur n'est pas connecté)
     await db.execute(
-      "INSERT INTO scores (player, score, theme) VALUES (?, ?, ?)",
-      [player, calculatedScore, theme]
+      "INSERT INTO scores (player, score, theme, user_id) VALUES (?, ?, ?, ?)",
+      [finalPlayerName, calculatedScore, theme, userId]
     );
 
     return NextResponse.json({ message: "Score enregistré !", score: calculatedScore });

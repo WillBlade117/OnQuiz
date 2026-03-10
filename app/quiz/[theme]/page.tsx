@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 interface Answer {
@@ -15,6 +16,7 @@ interface Question {
 }
 
 export default function QuizPage() {
+  const { data: session } = useSession();
   const params = useParams();
   const theme = params?.theme as string;
   const router = useRouter();
@@ -76,16 +78,20 @@ export default function QuizPage() {
   };
 
   const handleFinishQuiz = async () => {
-    if (!player.trim()) return alert("Entrez votre pseudo !");
+    // On vérifie le pseudo UNIQUEMENT si le joueur n'est pas connecté
+    if (!session && !player.trim()) return alert("Entrez votre pseudo !");
     
-    localStorage.setItem("onquiz_player", player);
+    // On sauvegarde le pseudo dans le cache uniquement s'il a été tapé manuellement
+    if (!session) {
+      localStorage.setItem("onquiz_player", player);
+    }
     
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player, theme, answers: userAnswers }),
+        body: JSON.stringify({ player: session ? session.user?.name : player, theme, answers: userAnswers }),
       });
 
       const data = await response.json();
@@ -187,22 +193,30 @@ export default function QuizPage() {
               <div>
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white">Quiz terminé !</h2>
                 <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
-                  Entre ton pseudo pour découvrir ton score et t'inscrire au classement.
+                  {session ? "Valide ton score pour l'ajouter à ton profil." : "Entre ton pseudo pour découvrir ton score."}
                 </p>
               </div>
 
-              <div className="w-full max-w-xs space-y-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-6 border border-slate-200 dark:border-slate-800">
-                <input
-                  type="text"
-                  placeholder="Ton pseudo..."
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-center font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  value={player}
-                  onChange={(e) => setPlayer(e.target.value)}
-                />
+              <div className="w-full max-w-xs space-y-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-6 border border-slate-200 dark:border-slate-800">
+                {!session ? (
+                  <input
+                    type="text"
+                    placeholder="Ton pseudo..."
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-center font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                    value={player}
+                    onChange={(e) => setPlayer(e.target.value)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center gap-3 rounded-lg bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700">
+                    {session.user?.image && <img src={session.user.image} alt="avatar" className="w-8 h-8 rounded-full" />}
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{session.user?.name}</span>
+                  </div>
+                )}
+                
                 <button
                   onClick={handleFinishQuiz}
                   disabled={isSubmitting}
-                  className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 dark:hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-95"
+                  className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
                 >
                   {isSubmitting ? "Calcul en cours..." : "Découvrir mon score"}
                 </button>

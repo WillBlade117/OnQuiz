@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeProvider";
+import AuthProvider from "./components/AuthProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable}`} suppressHydrationWarning>
       <body className="bg-background text-foreground transition-colors duration-300">
+        <AuthProvider>
         <ThemeProvider>
           <div className="flex min-h-screen flex-col">
             <Header />
@@ -35,6 +37,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
