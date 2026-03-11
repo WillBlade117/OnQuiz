@@ -3,7 +3,17 @@ import DiscordProvider from "next-auth/providers/discord";
 import { db } from "../../../../lib/db";
 import { RowDataPacket } from "mysql2";
 
-// On stocke la configuration dans une variable exportée
+declare module "next-auth" {
+  interface Session {
+    user: {
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role?: string;
+    }
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
@@ -34,9 +44,32 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
+    
+    async jwt({ token, user }) {
+      if (token.email) {
+        try {
+          const [dbUsers] = await db.execute<RowDataPacket[]>(
+            "SELECT role FROM users WHERE email = ?",
+            [token.email]
+          );
+          if (dbUsers.length > 0) {
+            token.role = dbUsers[0].role;
+          }
+        } catch (error) {
+          console.error("Erreur récupération rôle:", error);
+        }
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+      }
+      return session;
+    }
   },
 };
 
-// On initialise NextAuth avec ces options
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

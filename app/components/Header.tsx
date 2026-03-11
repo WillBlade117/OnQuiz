@@ -5,7 +5,6 @@ import ThemeToggle from "./ThemeToggle";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 export default function Header() {
-  // data contient les infos du joueur (nom, avatar), status dit s'il est "loading", "authenticated", ou "unauthenticated"
   const { data: session, status } = useSession();
 
   return (
@@ -20,13 +19,18 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <ThemeToggle />
 
-          {/* Logique d'affichage du bouton de connexion */}
           {status === "loading" ? (
             <div className="h-9 w-24 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800"></div>
-          // ... (Le reste du Header ne change pas)
           ) : session ? (
             <div className="flex items-center gap-4">
-              {/* ON ENGLOBE L'AVATAR ET LE NOM DANS UN LINK */}
+              {session.user?.role === "admin" && (
+                <Link 
+                  href="/admin" 
+                  className="hidden md:flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-indigo-600 ring-1 ring-inset ring-indigo-500/20 transition-all hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+                >
+                  ⚙️ Admin
+                </Link>
+              )}
               <Link href="/profil" className="group flex items-center gap-3 rounded-full bg-slate-50 dark:bg-slate-800/50 pr-4 pl-1 py-1 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700">
                 {session.user?.image && (
                   <img 
