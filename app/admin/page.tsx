@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "../../lib/db";
 import { RowDataPacket } from "mysql2";
 import Link from "next/link";
+import QuestionActions from "./components/QuestionActions";
 
 export default async function AdminDashboard(
   props: { searchParams: Promise<{ page?: string; limit?: string }> }
@@ -118,12 +119,7 @@ export default async function AdminDashboard(
                       {q.question}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mr-3">
-                        Éditer
-                      </button>
-                      <button className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                        Supprimer
-                      </button>
+                      <QuestionActions id={q.id} />
                     </td>
                   </tr>
                 ))
