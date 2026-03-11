@@ -60,6 +60,21 @@ export default async function AdminDashboard(
         </Link>
       </div>
 
+      <div className="mb-8 flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
+        <Link 
+          href="/admin" 
+          className="border-b-2 border-indigo-600 px-4 py-2 text-sm font-bold text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
+        >
+          Questions
+        </Link>
+        <Link 
+          href="/admin/utilisateurs" 
+          className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-700 transition-all"
+        >
+          Utilisateurs
+        </Link>
+      </div>
+
       {errorMessage && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
           <p className="font-bold">Erreur de base de données :</p>

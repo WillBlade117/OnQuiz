@@ -26,11 +26,15 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "discord") {
         try {
           const [existingUsers] = await db.execute<RowDataPacket[]>(
-            "SELECT id FROM users WHERE provider_account_id = ?",
+            "SELECT id, is_banned FROM users WHERE provider_account_id = ?",
             [account.providerAccountId]
           );
 
-          if (existingUsers.length === 0) {
+          if (existingUsers.length > 0) {
+            if (existingUsers[0].is_banned === 1) {
+              return "/banni"; 
+            }
+          } else {
             await db.execute(
               "INSERT INTO users (name, email, image, provider, provider_account_id) VALUES (?, ?, ?, ?, ?)",
               [user.name, user.email, user.image, "discord", account.providerAccountId]
