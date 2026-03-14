@@ -1,0 +1,124 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import { db } from "../../../lib/db";
+import { RowDataPacket } from "mysql2";
+import Link from "next/link";
+
+export default async function AuditLogsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user?.role !== "admin") {
+    redirect("/");
+  }
+
+  let logs: RowDataPacket[] = [];
+
+  try {
+    const [rows] = await db.execute<RowDataPacket[]>(`
+      SELECT 
+        l.id, l.action, l.target_id, l.details, l.created_at,
+        u.name as actor_name, u.image as actor_image
+      FROM audit_logs l
+      LEFT JOIN users u ON l.user_id = u.id
+      ORDER BY l.created_at DESC
+      LIMIT 100
+    `);
+    logs = rows;
+  } catch (error) {
+    console.error("Erreur SQL Historique:", error);
+  }
+
+  const formatAction = (action: string) => {
+    switch (action) {
+      case "USER_REGISTER":
+        return { text: "Nouvelle Inscription", color: "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400", icon: "👋" };
+      case "BAN_USER":
+        return { text: "Utilisateur Banni", color: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400", icon: "🛑" };
+      case "UNBAN_USER":
+        return { text: "Utilisateur Débanni", color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400", icon: "✅" };
+      default:
+        return { text: action, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400", icon: "⚡" };
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-12 transition-colors duration-300">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Panel Administrateur</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
+            Historique des événements système.
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-8 flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
+        <Link href="/admin" className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 transition-all">
+          Questions
+        </Link>
+        <Link href="/admin/utilisateurs" className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 transition-all">
+          Utilisateurs
+        </Link>
+        <Link href="/admin/historique" className="border-b-2 border-indigo-600 px-4 py-2 text-sm font-bold text-indigo-600 dark:border-indigo-400 dark:text-indigo-400">
+          Historique (Logs)
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none sm:p-10">
+        
+        {logs.length === 0 ? (
+          <div className="text-center text-slate-500 py-10">Aucun événement enregistré pour le moment.</div>
+        ) : (
+          <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-3 space-y-8">
+            {logs.map((log) => {
+              const actionStyle = formatAction(log.action);
+              const date = new Date(log.created_at);
+              
+              return (
+                <div key={log.id} className="relative pl-8">
+                  <span className="absolute -left-[17px] top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-slate-200 dark:bg-slate-900 dark:border-slate-700 shadow-sm text-sm">
+                    {actionStyle.icon}
+                  </span>
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wide ${actionStyle.color}`}>
+                          {actionStyle.text}
+                        </span>
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                          {date.toLocaleString("fr-FR", { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mt-2">
+                        {log.actor_name ? (
+                          <>
+                            {log.actor_image ? (
+                              <img src={log.actor_image} alt="" className="h-6 w-6 rounded-full" />
+                            ) : (
+                              <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                            )}
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{log.actor_name}</span>
+                          </>
+                        ) : (
+                          <span className="font-bold text-slate-500 italic">Système</span>
+                        )}
+                        
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">
+                          {log.details && `— ${log.details}`}
+                          {log.target_id && ` (Cible ID: ${log.target_id})`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

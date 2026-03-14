@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 import { db } from "../../../../lib/db";
+import { logAction } from "../../../../lib/logger";
 import { RowDataPacket } from "mysql2";
 
 declare module "next-auth" {
@@ -35,10 +36,12 @@ export const authOptions: NextAuthOptions = {
               return "/banni"; 
             }
           } else {
-            await db.execute(
+            const [result] = await db.execute(
               "INSERT INTO users (name, email, image, provider, provider_account_id) VALUES (?, ?, ?, ?, ?)",
               [user.name, user.email, user.image, "discord", account.providerAccountId]
             );
+            const newUserId = (result as any).insertId;
+            await logAction(newUserId, "USER_REGISTER", null, "Inscription via Discord");
           }
           return true;
         } catch (error) {
