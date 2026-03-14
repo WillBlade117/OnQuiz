@@ -68,7 +68,7 @@ export default function NewQuestionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 transition-colors duration-300">
+    <div className="mx-auto max-w-7xl px-4 py-12 transition-colors duration-300">
       <div className="mb-8 flex items-center gap-4">
         <Link 
           href="/admin" 

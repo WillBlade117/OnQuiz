@@ -3,7 +3,7 @@ import { authOptions } from "../../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { db } from "../../../lib/db";
 import { RowDataPacket } from "mysql2";
-import Link from "next/link";
+import AdminNav from "../components/AdminNav";
 import UserActions from "./components/UserActions";
 
 export default async function UsersDashboard() {
@@ -41,7 +41,7 @@ export default async function UsersDashboard() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 transition-colors duration-300">
+    <div className="mx-auto w-full max-w-6xl px-4 py-12 transition-colors duration-300">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white">Panel Administrateur</h1>
@@ -51,17 +51,7 @@ export default async function UsersDashboard() {
         </div>
       </div>
 
-      <div className="mb-8 flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
-        <Link href="/admin" className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 transition-all">
-          Questions
-        </Link>
-        <Link href="/admin/utilisateurs" className="border-b-2 border-indigo-600 px-4 py-2 text-sm font-bold text-indigo-600 dark:border-indigo-400 dark:text-indigo-400">
-          Utilisateurs
-        </Link>
-        <Link href="/admin/historique" className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 transition-all">
-          Historique (Logs)
-        </Link>
-      </div>
+      <AdminNav />
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
         <div className="overflow-x-auto">

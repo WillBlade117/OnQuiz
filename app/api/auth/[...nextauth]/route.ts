@@ -22,6 +22,10 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
     }),
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+  },
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "discord") {
@@ -32,20 +36,18 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (existingUsers.length > 0) {
-            if (existingUsers[0].is_banned === 1) {
-              return "/banni"; 
-            }
+            if (existingUsers[0].is_banned === 1) return "/banni";
           } else {
             const [result] = await db.execute(
               "INSERT INTO users (name, email, image, provider, provider_account_id) VALUES (?, ?, ?, ?, ?)",
-              [user.name, user.email, user.image, "discord", account.providerAccountId]
+              [user.name || "Joueur", user.email || null, user.image || null, "discord", account.providerAccountId]
             );
             const newUserId = (result as any).insertId;
             await logAction(newUserId, "USER_REGISTER", null, "Inscription via Discord");
           }
           return true;
         } catch (error) {
-          console.error("Erreur enregistrement user:", error);
+          console.error("Erreur signIn:", error);
           return false;
         }
       }
@@ -53,17 +55,20 @@ export const authOptions: NextAuthOptions = {
     },
     
     async jwt({ token, user }) {
-      if (token.email) {
+      if (user) {
         try {
           const [dbUsers] = await db.execute<RowDataPacket[]>(
-            "SELECT role FROM users WHERE email = ?",
-            [token.email]
+            "SELECT role FROM users WHERE provider_account_id = ?",
+            [token.sub]
           );
           if (dbUsers.length > 0) {
             token.role = dbUsers[0].role;
+          } else {
+            token.role = "user";
           }
         } catch (error) {
           console.error("Erreur récupération rôle:", error);
+          token.role = "user";
         }
       }
       return token;

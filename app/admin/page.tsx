@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "../../lib/db";
 import { RowDataPacket } from "mysql2";
 import Link from "next/link";
+import AdminNav from "./components/AdminNav";
 import QuestionActions from "./components/QuestionActions";
 
 export default async function AdminDashboard(
@@ -44,7 +45,7 @@ export default async function AdminDashboard(
   const totalPages = limitParam === "all" ? 1 : Math.ceil(totalItems / limit);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 transition-colors duration-300">
+    <div className="mx-auto w-full max-w-6xl px-4 py-12 transition-colors duration-300">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white">Panel Administrateur</h1>
@@ -60,20 +61,7 @@ export default async function AdminDashboard(
         </Link>
       </div>
 
-      <div className="mb-8 flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
-        <Link 
-          href="/admin" 
-          className="border-b-2 border-indigo-600 px-4 py-2 text-sm font-bold text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
-        >
-          Questions
-        </Link>
-        <Link 
-          href="/admin/utilisateurs" 
-          className="border-b-2 border-transparent px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-700 transition-all"
-        >
-          Utilisateurs
-        </Link>
-      </div>
+      <AdminNav />
 
       {errorMessage && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
