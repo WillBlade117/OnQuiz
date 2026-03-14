@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 
 export default function Header() {
   const { data: session, status } = useSession();
@@ -46,10 +47,12 @@ export default function Header() {
                   }`}
                 >
                   {session.user?.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
                       alt="Profil"
-                      className="h-8 w-8 rounded-full"
+                      width={32}
+                      height={32}
+                      className="h-8 w-8 rounded-full object-cover"
                     />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">

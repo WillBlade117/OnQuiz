@@ -22,10 +22,12 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
     }),
   ],
+
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
+
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "discord") {
@@ -36,7 +38,9 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (existingUsers.length > 0) {
-            if (existingUsers[0].is_banned === 1) return "/banni";
+            if (existingUsers[0].is_banned === 1) {
+              return "/banni"; 
+            }
           } else {
             const [result] = await db.execute(
               "INSERT INTO users (name, email, image, provider, provider_account_id) VALUES (?, ?, ?, ?, ?)",
@@ -47,7 +51,7 @@ export const authOptions: NextAuthOptions = {
           }
           return true;
         } catch (error) {
-          console.error("Erreur signIn:", error);
+          console.error("Erreur enregistrement user:", error);
           return false;
         }
       }
@@ -55,7 +59,7 @@ export const authOptions: NextAuthOptions = {
     },
     
     async jwt({ token, user }) {
-      if (user) {
+      if (user || token.sub) {
         try {
           const [dbUsers] = await db.execute<RowDataPacket[]>(
             "SELECT role FROM users WHERE provider_account_id = ?",

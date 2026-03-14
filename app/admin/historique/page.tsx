@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { db } from "../../../lib/db";
 import { RowDataPacket } from "mysql2";
 import AdminNav from "../components/AdminNav";
@@ -87,7 +88,13 @@ export default async function AuditLogsPage() {
                         {log.actor_name ? (
                           <>
                             {log.actor_image ? (
-                              <img src={log.actor_image} alt="" className="h-6 w-6 rounded-full" />
+                              <Image
+                                src={log.actor_image}
+                                alt={`Avatar de ${log.actor_name || "l'utilisateur"}`}
+                                width={24}
+                                height={24}
+                                className="h-6 w-6 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700"></div>
                             )}

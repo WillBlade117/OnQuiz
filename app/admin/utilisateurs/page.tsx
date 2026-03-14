@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { db } from "../../../lib/db";
 import { RowDataPacket } from "mysql2";
 import AdminNav from "../components/AdminNav";
@@ -71,7 +72,13 @@ export default async function UsersDashboard() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {u.image ? (
-                        <img src={u.image} alt={u.name} className="h-8 w-8 rounded-full" />
+                        <Image
+                          src={u.image}
+                          alt={u.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700">👤</div>
                       )}
