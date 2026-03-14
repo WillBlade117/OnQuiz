@@ -4,12 +4,17 @@ import { RowDataPacket } from "mysql2";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
-interface DBQuestionRow extends RowDataPacket { id: number; answers: string; }
-interface AnswerPayload { questionId: number; answerIndex: number; }
+interface DBQuestionRow extends RowDataPacket { 
+  id: number; 
+  answers: string; 
+}
+interface AnswerPayload { 
+  questionId: number; 
+  answerIndex: number; 
+}
 
 export async function POST(req: Request) {
   try {
-    // 1. On récupère la session côté SERVEUR (impossible à falsifier)
     const session = await getServerSession(authOptions);
     
     const body = await req.json();
@@ -22,7 +27,6 @@ export async function POST(req: Request) {
     let userId = null;
     let finalPlayerName = player;
 
-    // 2. Si l'utilisateur est connecté, on va chercher son ID et on force son vrai pseudo
     if (session?.user?.email) {
       const [users] = await db.execute<RowDataPacket[]>(
         "SELECT id, name FROM users WHERE email = ?",
@@ -38,15 +42,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Pseudo manquant" }, { status: 400 });
     }
 
-    // 3. Calcul du score (inchangé)
     let calculatedScore = 0;
     const questionIds = answers.map((a) => a.questionId);
 
     if (questionIds.length > 0) {
-      const placeholders = questionIds.map(() => '?').join(',');
-      const [dbQuestions] = await db.execute<DBQuestionRow[]>(
-        `SELECT id, answers FROM questions WHERE id IN (${placeholders})`,
-        questionIds
+      const [dbQuestions] = await db.query<DBQuestionRow[]>(
+        `SELECT id, answers FROM questions WHERE id IN (?)`,
+        [questionIds] 
       );
 
       answers.forEach((userAns) => {
@@ -60,7 +62,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // 4. On insère avec le user_id (qui sera NULL si le joueur n'est pas connecté)
     await db.execute(
       "INSERT INTO scores (player, score, theme, user_id) VALUES (?, ?, ?, ?)",
       [finalPlayerName, calculatedScore, theme, userId]
