@@ -10,6 +10,7 @@ export default function AdminNav() {
     { href: "/admin", label: "Questions" },
     { href: "/admin/utilisateurs", label: "Utilisateurs" },
     { href: "/admin/historique", label: "Historique (Logs)" },
+    { href: "/admin/import", label: "Import de masse (CSV)" },
   ];
 
   return (
