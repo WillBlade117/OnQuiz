@@ -59,7 +59,7 @@ export default function NewQuestionPage() {
         throw new Error(data.error || "Une erreur est survenue");
       }
 
-      router.push("/admin");
+      router.push("/admin/questions");
       router.refresh();
     } catch (err: any) {
       setError(err.message);
@@ -71,7 +71,7 @@ export default function NewQuestionPage() {
     <div className="mx-auto max-w-7xl px-4 py-12 transition-colors duration-300">
       <div className="mb-8 flex items-center gap-4">
         <Link 
-          href="/admin" 
+          href="/admin/questions" 
           className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors"
         >
           ←
