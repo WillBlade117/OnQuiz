@@ -15,6 +15,10 @@ interface Question {
   answers: Answer[];
 }
 
+const TIME_LIMIT = 15;
+const RADIUS = 20;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
 export default function QuizPage() {
   const { data: session } = useSession();
   const params = useParams();
@@ -30,6 +34,7 @@ export default function QuizPage() {
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
 
   useEffect(() => {
     const savedPlayer = localStorage.getItem("onquiz_player");
@@ -57,6 +62,21 @@ export default function QuizPage() {
       });
   }, [theme]);
 
+  useEffect(() => {
+    if (quizCompleted || selectedAnswerIndex !== null || questions.length === 0) return;
+
+    if (timeLeft === 0) {
+      handleAnswer(-1);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, selectedAnswerIndex, quizCompleted, questions.length]);
+
   const handleAnswer = (answerIndex: number) => {
     if (selectedAnswerIndex !== null) return;
     
@@ -71,6 +91,7 @@ export default function QuizPage() {
       if (current < questions.length - 1) {
         setCurrent((prev) => prev + 1);
         setSelectedAnswerIndex(null);
+        setTimeLeft(TIME_LIMIT);
       } else {
         setQuizCompleted(true);
       }
@@ -78,10 +99,8 @@ export default function QuizPage() {
   };
 
   const handleFinishQuiz = async () => {
-    // On vérifie le pseudo UNIQUEMENT si le joueur n'est pas connecté
     if (!session && !player.trim()) return alert("Entrez votre pseudo !");
     
-    // On sauvegarde le pseudo dans le cache uniquement s'il a été tapé manuellement
     if (!session) {
       localStorage.setItem("onquiz_player", player);
     }
@@ -129,16 +148,51 @@ export default function QuizPage() {
 
   const progress = quizCompleted ? 100 : ((current + 1) / questions.length) * 100;
 
+  const strokeDashoffset = CIRCUMFERENCE - (timeLeft / TIME_LIMIT) * CIRCUMFERENCE;
+  const isTimeWarning = timeLeft <= 5;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 transition-colors duration-300">
       <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800">
         
-        {/* ... Header de la carte ... */}
         <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="mb-2 flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            <span>Thème : <span className="text-indigo-600 dark:text-indigo-400">{theme}</span></span>
-            <span>{current + 1} / {questions.length}</span>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Thème : <span className="text-indigo-600 dark:text-indigo-400">{theme}</span>
+              </div>
+              <div className="mt-1 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                Question {current + 1} / {questions.length}
+              </div>
+            </div>
+
+            {!quizCompleted && (
+              <div className="relative flex items-center justify-center h-12 w-12 shrink-0">
+                <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
+                  <circle
+                    cx="24" cy="24" r={RADIUS}
+                    stroke="currentColor" strokeWidth="4" fill="transparent"
+                    className="text-slate-200 dark:text-slate-700"
+                  />
+                  <circle
+                    cx="24" cy="24" r={RADIUS}
+                    stroke="currentColor" strokeWidth="4" fill="transparent"
+                    strokeDasharray={CIRCUMFERENCE}
+                    strokeDashoffset={strokeDashoffset}
+                    className={`transition-all duration-1000 ease-linear ${
+                      isTimeWarning ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" : "text-indigo-500"
+                    }`}
+                  />
+                </svg>
+                <span className={`absolute text-sm font-black transition-colors ${
+                  isTimeWarning ? "text-red-500 animate-pulse scale-110" : "text-slate-700 dark:text-slate-200"
+                }`}>
+                  {timeLeft}
+                </span>
+              </div>
+            )}
           </div>
+          
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div
               className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500 ease-out"
