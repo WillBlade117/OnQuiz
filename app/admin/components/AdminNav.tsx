@@ -7,7 +7,8 @@ export default function AdminNav() {
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/admin", label: "Questions" },
+    { href: "/admin", label: "Pilotage" },
+    { href: "/admin/questions", label: "Questions" },
     { href: "/admin/utilisateurs", label: "Utilisateurs" },
     { href: "/admin/historique", label: "Historique (Logs)" },
     { href: "/admin/import", label: "Import de masse (CSV)" },

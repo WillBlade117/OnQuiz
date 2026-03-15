@@ -3,169 +3,122 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { db } from "../../lib/db";
 import { RowDataPacket } from "mysql2";
-import Link from "next/link";
 import AdminNav from "./components/AdminNav";
-import QuestionActions from "./components/QuestionActions";
+import Image from "next/image";
 
-export default async function AdminDashboard(
-  props: { searchParams: Promise<{ page?: string; limit?: string }> }
-) {
-  const searchParams = await props.searchParams;
+export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user?.role !== "admin") {
     redirect("/");
   }
 
-  const currentPage = parseInt(searchParams.page || "1", 10);
-  const limitParam = searchParams.limit || "25";
-  
-  const limit = limitParam === "all" ? 100000 : parseInt(limitParam, 10);
-  const offset = (currentPage - 1) * limit;
-
-  let questions: RowDataPacket[] = [];
-  let totalItems = 0;
-  let errorMessage = null;
+  let stats = {
+    totalUsers: 0,
+    totalGames: 0,
+    avgScore: 0,
+    topTheme: "-",
+  };
+  let recentGames: any[] = [];
 
   try {
-    const [countResult] = await db.execute<RowDataPacket[]>(
-      "SELECT COUNT(id) as total FROM questions"
-    );
-    totalItems = countResult[0].total;
+    const [usersResult] = await db.execute<RowDataPacket[]>("SELECT COUNT(id) as count FROM users");
+    stats.totalUsers = usersResult[0].count;
 
-    const [rows] = await db.execute<RowDataPacket[]>(
-      `SELECT id, theme, question FROM questions ORDER BY id DESC LIMIT ${limit} OFFSET ${offset}`
+    const [gamesResult] = await db.execute<RowDataPacket[]>("SELECT COUNT(id) as count FROM scores");
+    stats.totalGames = gamesResult[0].count;
+
+    const [avgResult] = await db.execute<RowDataPacket[]>("SELECT AVG(score) as avgScore FROM scores");
+    stats.avgScore = avgResult[0].avgScore ? Math.round(avgResult[0].avgScore * 10) / 10 : 0;
+
+    const [themeResult] = await db.execute<RowDataPacket[]>(
+      "SELECT theme, COUNT(id) as count FROM scores GROUP BY theme ORDER BY count DESC LIMIT 1"
     );
-    questions = rows;
-  } catch (error: any) {
-    console.error("Erreur SQL Admin:", error);
-    errorMessage = error.message;
+    if (themeResult.length > 0) {
+      stats.topTheme = themeResult[0].theme;
+    }
+
+    const [recentResult] = await db.execute<RowDataPacket[]>(`
+      SELECT s.id, s.score, s.theme, s.created_at, s.player, u.image 
+      FROM scores s
+      LEFT JOIN users u ON s.user_id = u.id
+      ORDER BY s.created_at DESC
+      LIMIT 5
+    `);
+    recentGames = recentResult;
+
+  } catch (error) {
+    console.error("Erreur SQL Dashboard Admin:", error);
   }
-
-  const totalPages = limitParam === "all" ? 1 : Math.ceil(totalItems / limit);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-12 transition-colors duration-300">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Panel Administrateur</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            Gérez la base de données de OnQuiz. ({totalItems} questions au total)
-          </p>
-        </div>
-        <Link 
-          href="/admin/nouvelle-question" 
-          className="inline-flex justify-center rounded-lg bg-indigo-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 active:scale-95"
-        >
-          + Nouvelle Question
-        </Link>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white">Tableau de Bord</h1>
+        <p className="text-slate-500 font-medium">Vue d'ensemble de l'activité de votre application.</p>
       </div>
 
       <AdminNav />
 
-      {errorMessage && (
-        <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-          <p className="font-bold">Erreur de base de données :</p>
-          <p className="font-mono text-sm mt-1">{errorMessage}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+          <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Joueurs Inscrits</span>
+          <span className="text-4xl font-black text-indigo-600 dark:text-indigo-400">{stats.totalUsers}</span>
         </div>
-      )}
+        
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+          <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Parties Jouées</span>
+          <span className="text-4xl font-black text-blue-600 dark:text-blue-400">{stats.totalGames}</span>
+        </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-slate-500 dark:text-slate-400">Afficher :</span>
-          <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            {["25", "50", "100", "all"].map((val) => (
-              <Link
-                key={val}
-                href={`/admin?page=1&limit=${val}`}
-                className={`px-3 py-1.5 transition-colors border-r border-slate-200 dark:border-slate-800 last:border-0 ${
-                  limitParam === val 
-                    ? "bg-indigo-50 text-indigo-700 font-bold dark:bg-indigo-500/20 dark:text-indigo-400" 
-                    : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50"
-                }`}
-              >
-                {val === "all" ? "Tout" : val}
-              </Link>
-            ))}
-          </div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+          <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Score Moyen</span>
+          <span className="text-4xl font-black text-amber-500">{stats.avgScore} <span className="text-lg text-slate-400">pts</span></span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+          <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Thème Favori</span>
+          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 truncate mt-auto">{stats.topTheme}</span>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
-              <tr>
-                <th scope="col" className="px-6 py-4 font-bold">ID</th>
-                <th scope="col" className="px-6 py-4 font-bold">Thème</th>
-                <th scope="col" className="px-6 py-4 font-bold">Question</th>
-                <th scope="col" className="px-6 py-4 text-right font-bold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {questions.length === 0 && !errorMessage ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                    Aucune question sur cette page.
-                  </td>
-                </tr>
-              ) : (
-                questions.map((q) => (
-                  <tr key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">#{q.id}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        {q.theme}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+          <h2 className="font-bold text-slate-800 dark:text-white">Activité Récente en direct</h2>
+        </div>
+        
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {recentGames.length === 0 ? (
+            <p className="p-6 text-center text-slate-500">Aucune partie n'a été jouée récemment.</p>
+          ) : (
+            recentGames.map((game) => (
+              <div key={game.id} className="p-4 sm:px-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
+                    {game.image ? (
+                      <Image src={game.image} alt="Avatar" width={40} height={40} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-lg">👤</span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-white">{game.player}</div>
+                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                      <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 px-2 py-0.5 rounded-full font-semibold">
+                        {game.theme}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium max-w-md truncate" title={q.question}>
-                      {q.question}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <QuestionActions id={q.id} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      • {new Date(game.created_at).toLocaleString("fr-FR", { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xl font-black text-slate-800 dark:text-slate-200">
+                  {game.score} <span className="text-sm text-slate-400 font-medium">pts</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
-
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> sur {totalPages}
-          </p>
-          <div className="flex gap-2">
-            {currentPage > 1 ? (
-              <Link
-                href={`/admin?page=${currentPage - 1}&limit=${limitParam}`}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
-              >
-                Précédent
-              </Link>
-            ) : (
-              <button disabled className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-400 opacity-50 dark:border-slate-800 dark:bg-slate-800/50">
-                Précédent
-              </button>
-            )}
-
-            {currentPage < totalPages ? (
-              <Link
-                href={`/admin?page=${currentPage + 1}&limit=${limitParam}`}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
-              >
-                Suivant
-              </Link>
-            ) : (
-              <button disabled className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-400 opacity-50 dark:border-slate-800 dark:bg-slate-800/50">
-                Suivant
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
