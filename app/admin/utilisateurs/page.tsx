@@ -23,7 +23,7 @@ export default async function UsersDashboard() {
 
     const [rows] = await db.execute<RowDataPacket[]>(`
       SELECT 
-        u.id, u.name, u.email, u.image, u.role, u.is_banned, u.created_at,
+        u.id, u.name, u.email, u.image, u.role, u.is_banned, u.created_at, u.credits,
         MAX(s.created_at) as last_played
       FROM users u
       LEFT JOIN scores s ON u.id = s.user_id
@@ -62,6 +62,7 @@ export default async function UsersDashboard() {
                 <th scope="col" className="px-6 py-4 font-bold">Joueur</th>
                 <th scope="col" className="px-6 py-4 font-bold">Inscription</th>
                 <th scope="col" className="px-6 py-4 font-bold">Dernière Partie</th>
+                <th scope="col" className="px-6 py-4 font-bold">Crédits</th>
                 <th scope="col" className="px-6 py-4 font-bold">Statut</th>
                 <th scope="col" className="px-6 py-4 text-right font-bold">Actions</th>
               </tr>
@@ -97,6 +98,10 @@ export default async function UsersDashboard() {
                   <td className="px-6 py-4 font-medium">{formatDate(u.created_at)}</td>
                   <td className="px-6 py-4 font-medium">{formatDate(u.last_played)}</td>
                   
+                  <td className="px-6 py-4 font-black text-indigo-600 dark:text-indigo-400 text-lg">
+                    🪙 {u.credits || 0}
+                  </td>
+                  
                   <td className="px-6 py-4">
                     {u.is_banned ? (
                       <span className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
@@ -109,7 +114,13 @@ export default async function UsersDashboard() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <UserActions id={u.id} isBanned={Boolean(u.is_banned)} role={u.role} />
+                    <UserActions 
+                      id={u.id} 
+                      isBanned={Boolean(u.is_banned)} 
+                      role={u.role} 
+                      userName={u.name}
+                      currentCredits={u.credits || 0}
+                    />
                   </td>
                 </tr>
               ))}

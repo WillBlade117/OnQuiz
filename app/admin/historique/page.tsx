@@ -6,7 +6,6 @@ import { db } from "../../../lib/db";
 import { RowDataPacket } from "mysql2";
 import AdminNav from "../components/AdminNav";
 
-
 export default async function AuditLogsPage() {
   const session = await getServerSession(authOptions);
 
@@ -20,9 +19,11 @@ export default async function AuditLogsPage() {
     const [rows] = await db.execute<RowDataPacket[]>(`
       SELECT 
         l.id, l.action, l.target_id, l.details, l.created_at,
-        u.name as actor_name, u.image as actor_image
+        u.name as actor_name, u.image as actor_image,
+        t.name as target_name
       FROM audit_logs l
       LEFT JOIN users u ON l.user_id = u.id
+      LEFT JOIN users t ON l.target_id = t.id
       ORDER BY l.created_at DESC
       LIMIT 100
     `);
@@ -39,6 +40,10 @@ export default async function AuditLogsPage() {
         return { text: "Utilisateur Banni", color: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400", icon: "🛑" };
       case "UNBAN_USER":
         return { text: "Utilisateur Débanni", color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400", icon: "✅" };
+      case "ADD_CREDITS":
+        return { text: "Crédits Ajoutés", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400", icon: "🪙" };
+      case "UPDATE_CREDITS":
+        return { text: "Solde Modifié", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400", icon: "💰" };
       default:
         return { text: action, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400", icon: "⚡" };
     }
@@ -106,7 +111,11 @@ export default async function AuditLogsPage() {
                         
                         <span className="text-slate-500 dark:text-slate-400 text-sm">
                           {log.details && `— ${log.details}`}
-                          {log.target_id && ` (Cible ID: ${log.target_id})`}
+                          {log.target_name 
+                            ? ` (Cible : ${log.target_name})` 
+                            : log.target_id 
+                              ? ` (Cible ID: ${log.target_id})` 
+                              : ''}
                         </span>
                       </div>
                     </div>

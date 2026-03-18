@@ -1,45 +1,62 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
-import { logAction } from "../../../../../lib/logger";
-import { RowDataPacket } from "mysql2";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
+import { RowDataPacket } from "mysql2";
 
-export async function PATCH(
-  req: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
     const session = await getServerSession(authOptions);
-
-    if (!session || session.user?.role !== "admin") {
+    if (!session || session.user?.role !== "admin" || !session.user?.email) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    const resolvedParams = await params;
+    const targetId = resolvedParams.id;
     const body = await req.json();
-    const { is_banned } = body;
-
-    if (typeof is_banned !== "number") {
-      return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
-    }
 
     const [adminRows] = await db.execute<RowDataPacket[]>(
-      "SELECT id FROM users WHERE email = ?", [session.user.email]
+      "SELECT id FROM users WHERE email = ?", 
+      [session.user.email]
     );
-    const adminId = adminRows[0]?.id || null;
+    const adminId = adminRows.length > 0 ? adminRows[0].id : null;
 
-    await db.execute(
-      "UPDATE users SET is_banned = ? WHERE id = ?",
-      [is_banned, params.id]
-    );
+    if (body.action === "add_credits") {
+      const amountToAdd = parseInt(body.amount, 10);
+      if (isNaN(amountToAdd)) {
+        return NextResponse.json({ error: "Montant invalide" }, { status: 400 });
+      }
 
-    const actionName = is_banned === 1 ? "BAN_USER" : "UNBAN_USER";
-    await logAction(adminId, actionName, Number(params.id), `Action par admin ID ${adminId}`);
+      await db.execute("UPDATE users SET credits = credits + ? WHERE id = ?", [amountToAdd, targetId]);
+      
+      if (adminId) {
+        await db.execute(
+          "INSERT INTO audit_logs (user_id, action, target_id, details) VALUES (?, ?, ?, ?)",
+          [adminId, "ADD_CREDITS", targetId, `A ajouté ${amountToAdd} crédits au joueur`]
+        );
+      }
+      return NextResponse.json({ message: "Crédits ajoutés avec succès" });
+    }
 
-    return NextResponse.json({ message: "Statut de l'utilisateur mis à jour" }, { status: 200 });
+    if (body.action === "toggle_ban") {
+      const { is_banned } = body;
+      await db.execute("UPDATE users SET is_banned = ? WHERE id = ?", [is_banned ? 1 : 0, targetId]);
+      
+      if (adminId) {
+        const actionType = is_banned ? "BAN_USER" : "UNBAN_USER";
+        const actionDetails = is_banned ? "A banni le joueur" : "A débanni le joueur";
+        await db.execute(
+          "INSERT INTO audit_logs (user_id, action, target_id, details) VALUES (?, ?, ?, ?)",
+          [adminId, actionType, targetId, actionDetails]
+        );
+      }
+      return NextResponse.json({ message: "Statut mis à jour" });
+    }
+
+    return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
+
   } catch (error) {
-    console.error("Erreur de modification du statut:", error);
+    console.error("Erreur API User PATCH:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
