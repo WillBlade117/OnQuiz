@@ -35,6 +35,8 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const [paymentNeeded, setPaymentNeeded] = useState<{ cost: number } | null>(null);
+  const [missingCredits, setMissingCredits] = useState(false);
 
   useEffect(() => {
     const savedPlayer = localStorage.getItem("onquiz_player");
@@ -43,27 +45,49 @@ export default function QuizPage() {
     }
   }, []);
 
-  useEffect(() => {
+  const fetchQuestions = (pay = false) => {
     if (!theme) return;
-
     setLoading(true);
-    fetch(`/api/questions?theme=${encodeURIComponent(theme)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
+    
+    fetch(`/api/questions?theme=${encodeURIComponent(theme)}${pay ? "&pay=true" : ""}`)
+      .then(async (res) => {
+        const data = await res.json();
+        
+        if (!res.ok) {
+          if (data.code === "REQUIRES_PAYMENT") {
+            setPaymentNeeded({ cost: data.cost });
+            setLoading(false);
+            return null;
+          }
+          if (data.code === "INSUFFICIENT_CREDITS") {
+            setPaymentNeeded(null);
+            setMissingCredits(true);
+            setLoading(false);
+            return null;
+          }
+          throw new Error(data.error);
+        }
+        return data;
       })
       .then((data) => {
-        setQuestions(data);
-        setLoading(false);
+        if (data) {
+          setQuestions(data);
+          setPaymentNeeded(null);
+          setLoading(false);
+        }
       })
       .catch((err) => {
         console.error("Erreur API:", err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchQuestions();
   }, [theme]);
 
   useEffect(() => {
-    if (quizCompleted || selectedAnswerIndex !== null || questions.length === 0) return;
+    if (quizCompleted || selectedAnswerIndex !== null || questions.length === 0 || paymentNeeded || missingCredits) return;
 
     if (timeLeft === 0) {
       handleAnswer(-1);
@@ -75,7 +99,7 @@ export default function QuizPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, selectedAnswerIndex, quizCompleted, questions.length]);
+  }, [timeLeft, selectedAnswerIndex, quizCompleted, questions.length, paymentNeeded, missingCredits]);
 
   const handleAnswer = (answerIndex: number) => {
     if (selectedAnswerIndex !== null) return;
@@ -135,7 +159,7 @@ export default function QuizPage() {
     );
   }
 
-  if (questions.length === 0) {
+  if (questions.length === 0 && !paymentNeeded && !missingCredits) {
     return (
       <div className="mx-auto max-w-md p-10 text-center transition-colors duration-300">
         <p className="text-slate-500 dark:text-slate-400 mb-6 font-medium">Aucune question trouvée pour le thème "{theme}".</p>
@@ -146,14 +170,14 @@ export default function QuizPage() {
     );
   }
 
-  const progress = quizCompleted ? 100 : ((current + 1) / questions.length) * 100;
-
+  const progress = quizCompleted ? 100 : questions.length > 0 ? ((current + 1) / questions.length) * 100 : 0;
   const strokeDashoffset = CIRCUMFERENCE - (timeLeft / TIME_LIMIT) * CIRCUMFERENCE;
   const isTimeWarning = timeLeft <= 5;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 transition-colors duration-300">
-      <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800">
+      
+      <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800 relative">
         
         <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="mb-4 flex items-center justify-between">
@@ -162,11 +186,11 @@ export default function QuizPage() {
                 Thème : <span className="text-indigo-600 dark:text-indigo-400">{theme}</span>
               </div>
               <div className="mt-1 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-                Question {current + 1} / {questions.length}
+                Question {questions.length > 0 ? current + 1 : 0} / {questions.length}
               </div>
             </div>
 
-            {!quizCompleted && (
+            {!quizCompleted && questions.length > 0 && (
               <div className="relative flex items-center justify-center h-12 w-12 shrink-0">
                 <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
                   <circle
@@ -202,7 +226,7 @@ export default function QuizPage() {
         </div>
 
         <div className="p-6 md:p-8">
-          {!quizCompleted ? (
+          {questions.length > 0 && !quizCompleted ? (
             <div key={current} className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <h2 className="text-center text-2xl font-black leading-tight text-slate-800 dark:text-white md:text-3xl italic">
                 "{questions[current].question}"
@@ -241,59 +265,112 @@ export default function QuizPage() {
                 })}
               </div>
             </div>
-          ) : finalScore === null ? (
-            <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-4xl shadow-inner">🏁</div>
-              <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white">Quiz terminé !</h2>
-                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
-                  {session ? "Valide ton score pour l'ajouter à ton profil." : "Entre ton pseudo pour découvrir ton score."}
-                </p>
-              </div>
+          ) : quizCompleted ? (
+            finalScore === null ? (
+              <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-4xl shadow-inner">🏁</div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white">Quiz terminé !</h2>
+                  <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
+                    {session ? "Valide ton score pour l'ajouter à ton profil." : "Entre ton pseudo pour découvrir ton score."}
+                  </p>
+                </div>
 
-              <div className="w-full max-w-xs space-y-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-6 border border-slate-200 dark:border-slate-800">
-                {!session ? (
-                  <input
-                    type="text"
-                    placeholder="Ton pseudo..."
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-center font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400"
-                    value={player}
-                    onChange={(e) => setPlayer(e.target.value)}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center gap-3 rounded-lg bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700">
-                    {session.user?.image && <img src={session.user.image} alt="avatar" className="w-8 h-8 rounded-full" />}
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{session.user?.name}</span>
-                  </div>
-                )}
-                
+                <div className="w-full max-w-xs space-y-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-6 border border-slate-200 dark:border-slate-800">
+                  {!session ? (
+                    <input
+                      type="text"
+                      placeholder="Ton pseudo..."
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-center font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                      value={player}
+                      onChange={(e) => setPlayer(e.target.value)}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center gap-3 rounded-lg bg-white dark:bg-slate-800 p-3 border border-slate-200 dark:border-slate-700">
+                      {session.user?.image && <img src={session.user.image} alt="avatar" className="w-8 h-8 rounded-full" />}
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{session.user?.name}</span>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={handleFinishQuiz}
+                    disabled={isSubmitting}
+                    className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    {isSubmitting ? "Calcul en cours..." : "Découvrir mon score"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-4xl shadow-inner">🏆</div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white">Bien joué {player} !</h2>
+                  <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
+                    Ton score final est de : <span className="text-indigo-600 dark:text-indigo-400 text-3xl font-black">{finalScore}</span> / {questions.length}
+                  </p>
+                </div>
                 <button
-                  onClick={handleFinishQuiz}
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
+                  onClick={() => router.push("/classement")}
+                  className="w-full max-w-xs rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all active:scale-95"
                 >
-                  {isSubmitting ? "Calcul en cours..." : "Découvrir mon score"}
+                  Voir le classement
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in duration-300">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-4xl shadow-inner">🏆</div>
-              <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white">Bien joué {player} !</h2>
-                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400 font-medium">
-                  Ton score final est de : <span className="text-indigo-600 dark:text-indigo-400 text-3xl font-black">{finalScore}</span> / {questions.length}
-                </p>
-              </div>
-              <button
-                onClick={() => router.push("/classement")}
-                className="w-full max-w-xs rounded-lg bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-all active:scale-95"
-              >
-                Voir le classement
-              </button>
-            </div>
-          )}
+            )
+          ) : null}
         </div>
+
+        {paymentNeeded && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 px-4 backdrop-blur-sm rounded-3xl">
+            <div className="w-full max-w-md animate-in zoom-in-95 rounded-3xl bg-white p-8 text-center shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-3xl dark:bg-indigo-900/30">
+                🪙
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">Parties gratuites épuisées</h3>
+              <p className="mt-2 font-medium text-slate-500 dark:text-slate-400">
+                Vous avez joué vos 3 parties gratuites d'aujourd'hui. Voulez-vous utiliser <strong className="text-indigo-600 dark:text-indigo-400">{paymentNeeded.cost} crédits</strong> pour lancer cette partie ?
+              </p>
+              <div className="mt-8 flex flex-col gap-3">
+                <button
+                  onClick={() => fetchQuestions(true)}
+                  className="w-full rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-lg shadow-indigo-500/30 transition-transform hover:scale-105 hover:bg-indigo-700"
+                >
+                  Payer {paymentNeeded.cost} crédits & Jouer
+                </button>
+                <Link
+                  href="/"
+                  className="w-full rounded-xl bg-slate-100 py-3.5 font-bold text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                >
+                  Retour à l'accueil
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {missingCredits && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 px-4 backdrop-blur-sm rounded-3xl">
+            <div className="w-full max-w-md animate-in zoom-in-95 rounded-3xl bg-white p-8 text-center shadow-2xl dark:bg-slate-900 border border-red-200 dark:border-red-900/30">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl dark:bg-red-900/30">
+                ❌
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">Crédits insuffisants</h3>
+              <p className="mt-2 font-medium text-slate-500 dark:text-slate-400">
+                Vous n'avez pas assez de crédits pour lancer une nouvelle partie. Demandez à un administrateur de recharger votre compte !
+              </p>
+              <div className="mt-8">
+                <Link
+                  href="/"
+                  className="block w-full rounded-xl bg-slate-900 py-3.5 font-bold text-white transition-transform hover:scale-105 dark:bg-slate-100 dark:text-slate-900"
+                >
+                  Retour à l'accueil
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

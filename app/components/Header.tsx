@@ -13,6 +13,9 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const [balance, setBalance] = useState({ credits: 0, freeGamesLeft: 0 });
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -22,6 +25,18 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isMenuOpen && session) {
+      setIsLoadingBalance(true);
+      fetch('/api/user/balance')
+        .then(res => res.json())
+        .then(data => {
+          setBalance(data);
+          setIsLoadingBalance(false);
+        });
+    }
+  }, [isMenuOpen, session]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
@@ -66,9 +81,22 @@ export default function Header() {
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-2">
                       
+                      <div className="mb-2 mx-1 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-200">
+                        {isLoadingBalance ? (
+                          <span className="animate-pulse text-slate-400">Chargement...</span>
+                        ) : (
+                          <>
+                            <span title="Parties gratuites restantes" className="flex items-center gap-1">⚡ {balance.freeGamesLeft}/3</span>
+                            <span title="Vos crédits" className="flex items-center gap-1">🪙 {balance.credits}</span>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="my-1.5 border-t border-slate-100 dark:border-slate-800"></div>
+
                       <Link
                         href="/profil"
                         onClick={() => setIsMenuOpen(false)}

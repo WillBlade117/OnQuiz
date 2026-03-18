@@ -55,7 +55,7 @@ export default async function AdminDashboard() {
     <div className="mx-auto w-full max-w-6xl px-4 py-12 transition-colors duration-300">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white">Tableau de Bord</h1>
-        <p className="text-slate-500 font-medium">Vue d'ensemble de l'activité de votre application.</p>
+        <p className="text-slate-500 font-medium">Vue d'ensemble de l'activité.</p>
       </div>
 
       <AdminNav />
