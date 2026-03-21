@@ -12,6 +12,7 @@ export default function AdminNav() {
     { href: "/admin/utilisateurs", label: "Utilisateurs" },
     { href: "/admin/historique", label: "Historique (Logs)" },
     { href: "/admin/import", label: "Import de masse (CSV)" },
+    { href: "/admin/reglages", label: "Réglages" },
   ];
 
   return (
