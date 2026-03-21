@@ -77,7 +77,7 @@ export default async function AdminDashboard(
             {["25", "50", "100", "all"].map((val) => (
               <Link
                 key={val}
-                href={`/admin?page=1&limit=${val}`}
+                href={`/admin/questions?page=1&limit=${val}`}
                 className={`px-3 py-1.5 transition-colors border-r border-slate-200 dark:border-slate-800 last:border-0 ${
                   limitParam === val 
                     ? "bg-indigo-50 text-indigo-700 font-bold dark:bg-indigo-500/20 dark:text-indigo-400" 
@@ -140,7 +140,7 @@ export default async function AdminDashboard(
           <div className="flex gap-2">
             {currentPage > 1 ? (
               <Link
-                href={`/admin?page=${currentPage - 1}&limit=${limitParam}`}
+                href={`/admin/questions?page=${currentPage - 1}&limit=${limitParam}`}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
               >
                 Précédent
@@ -153,7 +153,7 @@ export default async function AdminDashboard(
 
             {currentPage < totalPages ? (
               <Link
-                href={`/admin?page=${currentPage + 1}&limit=${limitParam}`}
+                href={`/admin/questions?page=${currentPage + 1}&limit=${limitParam}`}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
               >
                 Suivant
