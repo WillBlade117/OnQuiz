@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import confetti from "canvas-confetti";
 
 interface Answer {
   text: string;
@@ -144,6 +145,15 @@ export default function QuizPage() {
       if (data.error) throw new Error(data.error);
       
       setFinalScore(data.score);
+
+      if (data.score === questions.length) {
+        confetti({
+          particleCount: 150, // Nombre de confettis
+          spread: 70,         // Angle de projection
+          origin: { y: 0.6 }  // Origine
+        });
+      }
+
     } catch (error) {
       alert("Erreur lors de la sauvegarde du score.");
     } finally {
