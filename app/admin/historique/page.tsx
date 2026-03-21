@@ -44,6 +44,8 @@ export default async function AuditLogsPage() {
         return { text: "Crédits Ajoutés", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400", icon: "🪙" };
       case "UPDATE_CREDITS":
         return { text: "Solde Modifié", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400", icon: "💰" };
+      case "IMPORT_QUESTIONS":
+        return { text: "Import CSV", color: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-400", icon: "📥" };
       default:
         return { text: action, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400", icon: "⚡" };
     }
