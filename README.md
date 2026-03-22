@@ -1,33 +1,27 @@
-# 🧠 OnQuiz - Application de Quiz Interactive
+# OnQuiz | Plateforme de Quiz Interactive Full-Stack
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+OnQuiz est une application web interactive conçue pour démontrer la gestion de flux de données complexes et l'intégration de bases de données relationnelles dans un environnement moderne.
 
-**OnQuiz** est une plateforme de quiz moderne, fluide et engageante. Conçue pour offrir une expérience utilisateur optimale, elle permet de tester ses connaissances sur une large variété de thématiques tout en défiant la communauté grâce à un système de classement dynamique.
+## 🎯 Objectifs du projet
 
----
+Bien que développé dans un esprit ludique, ce projet répond à plusieurs défis techniques propres aux applications métiers :
+* **Gestion Full-Stack** : Mise en œuvre d'une architecture complète utilisant Next.js et MySQL pour la persistance des données.
+* **Engagement Utilisateur** : Création d'une interface fluide et réactive favorisant l'interactivité et le défi communautaire.
+* **Scalabilité des contenus** : Système dynamique capable de gérer plus de 1000 questions réparties sur 10 thématiques variées.
+* **Performance & Temps Réel** : Intégration d'un système de classement mis à jour dynamiquement via API.
 
-## Fonctionnalités Principales
-- **Large Choix de Thèmes** : 10 catégories variées
-- **Quiz Dynamique** : Sessions de 10 questions
-- **Classement en Temps Réel** : Enregistrement des scores
-- **Expérience Mobile-First** : Interface entièrement responsive
-- **Gestion des Données** : API gérant dynamiquement l'extraction des questions et la sauvegarde des scores.
+## 🛠 Stack Technique
 
----
+Le projet s'appuie sur les dernières versions des technologies web pour garantir rapidité et maintenabilité :
 
-## Stack Technique
-- **Frontend** : [Next.js 15](https://nextjs.org/) (App Router), [React 19](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/).
-- **Backend** : API Routes (Route Handlers) développées en TypeScript.
-- **Base de Données** : MySQL avec pool de connexions optimisé.
+* **Framework** : [Next.js](https://nextjs.org/) (App Router) pour une navigation optimisée.
+* **Frontend** : [React 19](https://react.dev/) et [Tailwind CSS](https://tailwindcss.com/) pour une interface élégante et mobile-first.
+* **Backend** : API Routes développées en TypeScript pour une logique métier robuste.
+* **Base de Données** : [MySQL](https://www.mysql.com/) avec pool de connexions optimisé pour la sauvegarde des scores.
+* **Authentification** : NextAuth.js pour la gestion sécurisée des sessions utilisateurs.
 
----
+## ✨ Fonctionnalités clés
 
-## Objectif du Projet
-L'objectif d'OnQuiz est de proposer une expérience interactive et ludique, permettant à chacun de tester sa culture générale tout en se mesurant aux autres. Le projet met l'accent sur la rapidité d'exécution et la propreté de l'interface utilisateur.
-
----
-
-## Auteur
-Projet réalisé avec ❤️ par **William Sart** [Consulter mon site](https://www.william-sart.fr)
+* **Expérience Interactive** : Sessions de 10 questions par thématique avec animations fluides.
+* **Classement Communautaire** : Tableau des scores en temps réel pour stimuler la compétition.
+* **Interface Personnalisable** : Support natif du mode sombre et design immersif.
