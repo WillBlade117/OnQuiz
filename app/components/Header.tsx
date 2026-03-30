@@ -214,8 +214,14 @@ export default function Header() {
               ✕
             </button>
 
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-3xl dark:bg-indigo-900/30">
-              👋
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 p-3 dark:bg-indigo-900/30">
+              <Image
+                src="/icon.svg"
+                alt="Logo OnQuiz"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
             </div>
 
             <h3 className="mb-3 text-2xl font-black text-slate-900 dark:text-white">
