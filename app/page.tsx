@@ -5,9 +5,8 @@ import { THEMES } from "../lib/constants";
 export default function Home() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      
-      <Image 
-        src="/imgBibliotheque.jpg" 
+      <Image
+        src="/imgBibliotheque.jpg"
         alt="Décor de bibliothèque"
         fill
         priority
@@ -15,12 +14,14 @@ export default function Home() {
       />
 
       <div className="absolute inset-0 z-0 bg-slate-50/40 transition-colors duration-300 dark:bg-slate-900/50"></div>
-      
+
       <main className="relative z-10 mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        
         <div className="mb-16 text-center animate-in fade-in slide-in-from-top-4 duration-700">
           <h1 className="mb-4 text-5xl font-black tracking-tight text-slate-900 dark:text-white md:text-8xl">
-            On<span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Quiz</span>
+            On
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Quiz
+            </span>
           </h1>
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300 md:text-3xl">
             10 thèmes | 1000+ questions
@@ -33,15 +34,17 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 animate-in fade-in zoom-in-95 duration-1000 delay-150">
           {THEMES.map((theme) => (
-            <Link 
-              key={theme.name} 
+            <Link
+              key={theme.name}
               href={`/quiz/${theme.name.toLowerCase()}`}
               className="group relative flex flex-col items-center justify-center rounded-3xl border border-slate-200/50 dark:border-slate-800/50 bg-white/90 dark:bg-slate-900/90 p-6 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:ring-2 hover:ring-blue-500/20 dark:hover:ring-blue-400/20"
             >
-              <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${theme.color} text-3xl text-white shadow-lg transition-transform group-hover:scale-110 group-active:scale-95`}>
+              <div
+                className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${theme.color} text-3xl text-white shadow-lg transition-transform group-hover:scale-110 group-active:scale-95`}
+              >
                 {theme.icon}
               </div>
-              
+
               <span className="text-sm font-black uppercase tracking-wide text-slate-800 dark:text-slate-200 text-center">
                 {theme.name}
               </span>
@@ -55,14 +58,13 @@ export default function Home() {
           <p className="text-sm font-semibold text-slate-600 dark:text-slate-500 uppercase tracking-widest">
             Compétition en temps réel
           </p>
-          <Link 
-            href="/classement" 
+          <Link
+            href="/classement"
             className="group flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white px-8 py-3 font-bold text-white dark:text-slate-900 transition-all hover:bg-blue-600 dark:hover:bg-blue-50 hover:shadow-xl hover:shadow-blue-500/20 active:scale-95"
           >
             🏆 Voir le classement
           </Link>
         </div>
-
       </main>
     </div>
   );

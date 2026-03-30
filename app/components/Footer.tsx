@@ -6,13 +6,12 @@ export default function Footer() {
   return (
     <footer className="w-full border-t border-slate-100 py-8 transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-4 px-4 text-center md:flex-row md:justify-between md:text-left">
-        
-        <div className="flex flex-col gap-1">
+        <div>
           <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-            OnQuiz Project
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            © {currentYear} Tous droits réservés.
+            OnQuiz{" "}
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+              © {currentYear} Tous droits réservés.
+            </span>
           </p>
         </div>
 

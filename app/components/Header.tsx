@@ -61,6 +61,13 @@ export default function Header() {
             href="/"
             className="flex items-center gap-2 text-xl font-black text-indigo-600 transition-transform hover:scale-105 dark:text-indigo-400"
           >
+            <Image
+              src="/icon.svg"
+              alt="Logo OnQuiz"
+              width={24}
+              height={24}
+              className="h-5 w-5 object-contain drop-shadow-sm"
+            />
             OnQuiz
           </Link>
 
