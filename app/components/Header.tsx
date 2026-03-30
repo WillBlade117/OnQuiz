@@ -248,7 +248,7 @@ export default function Header() {
             </button>
 
             <p className="mt-5 text-xs font-medium text-slate-400">
-              Connexion sécurisée et rapide via OAuth2.
+              Connexion sécurisée et rapide.
             </p>
           </div>
         </div>
