@@ -130,3 +130,29 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const { questionId, answerIndex } = await req.json();
+
+    const [rows] = await db.execute<RowDataPacket[]>(
+      "SELECT answers FROM questions WHERE id = ?",
+      [questionId],
+    );
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "Question introuvable" },
+        { status: 404 },
+      );
+    }
+
+    const answers = JSON.parse(rows[0].answers);
+    const isCorrect = answers[answerIndex]?.correct === true;
+
+    return NextResponse.json({ isCorrect });
+  } catch (error) {
+    console.error("Erreur validation réponse:", error);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}

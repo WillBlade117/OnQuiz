@@ -15,6 +15,10 @@ interface Question {
   answers: Answer[];
 }
 
+const TIME_LIMIT = 15;
+const RADIUS = 20;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
 export default function MortSubitePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -26,8 +30,14 @@ export default function MortSubitePage() {
     "loading" | "playing" | "gameover" | "payment"
   >("loading");
 
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [userAnswers, setUserAnswers] = useState<
+    { questionId: number; answerIndex: number }[]
+  >([]);
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(
+    null,
+  );
   const [isChecking, setIsChecking] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
 
   const [gameCost, setGameCost] = useState(20);
   const [paymentError, setPaymentError] = useState("");
@@ -40,12 +50,30 @@ export default function MortSubitePage() {
     }
   }, [status, router]);
 
+  // GESTION DU CHRONO
+  useEffect(() => {
+    if (gameState !== "playing" || isChecking || questions.length === 0) return;
+
+    if (timeLeft <= 0) {
+      handleGameOver();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, gameState, isChecking, questions.length]);
+
   const startNewGame = async (pay = false) => {
     setGameState("loading");
     setScore(0);
     setCurrentIndex(0);
-    setSelectedAnswer(null);
+    setUserAnswers([]);
+    setSelectedAnswerIndex(null);
     setPaymentError("");
+    setTimeLeft(TIME_LIMIT);
 
     try {
       const url = `/api/questions?theme=mort-subite${pay ? "&pay=true" : ""}`;
@@ -75,46 +103,47 @@ export default function MortSubitePage() {
     }
   };
 
-  const handleAnswer = async (answerText: string) => {
+  const handleAnswer = async (answerIndex: number) => {
     if (isChecking) return;
     setIsChecking(true);
-    setSelectedAnswer(answerText);
+    setSelectedAnswerIndex(answerIndex);
 
     try {
-      const res = await fetch("/api/scores", {
+      // 1. On interroge la route serveur pour la validation
+      const res = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionId: questions[currentIndex].id,
-          answer: answerText,
-          theme: "mort-subite",
-          isSuddenDeath: true,
-          currentScore: score,
+          answerIndex,
         }),
       });
-
       const data = await res.json();
 
+      // 2. On mémorise la réponse pour l'enregistrement du score final
+      const newAnswers = [
+        ...userAnswers,
+        { questionId: questions[currentIndex].id, answerIndex },
+      ];
+      setUserAnswers(newAnswers);
+
       if (data.isCorrect) {
-        // Bonne réponse ! On incrémente le score et on passe à la suivante
         setScore((s) => s + 1);
         setTimeout(() => {
-          setSelectedAnswer(null);
+          setSelectedAnswerIndex(null);
           setIsChecking(false);
 
-          // Si on arrive à la fin du lot de 10 questions, on en recharge 10 autres en silence
           if (currentIndex === questions.length - 1) {
             loadMoreQuestions();
           } else {
             setCurrentIndex((i) => i + 1);
+            setTimeLeft(TIME_LIMIT);
           }
-        }, 1000);
+        }, 600);
       } else {
-        // Mauvaise réponse = GAME OVER immédiat
         setTimeout(() => {
-          setGameState("gameover");
-          setIsChecking(false);
-        }, 1500);
+          handleGameOver(newAnswers);
+        }, 800);
       }
     } catch (error) {
       console.error("Erreur de validation", error);
@@ -122,9 +151,28 @@ export default function MortSubitePage() {
     }
   };
 
+  const handleGameOver = async (finalAnswers = userAnswers) => {
+    setGameState("gameover");
+    setIsChecking(false);
+
+    // 3. On sauvegarde le score, ce qui déduit la partie gratuite
+    try {
+      await fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player: session?.user?.name || "Joueur",
+          theme: "mort-subite",
+          answers: finalAnswers,
+        }),
+      });
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde du score", err);
+    }
+  };
+
   const loadMoreQuestions = async () => {
     try {
-      // On recharge des questions sans repayer (car on est dans la même partie)
       const res = await fetch(
         "/api/questions?theme=mort-subite&pay=false&continue=true",
       );
@@ -132,24 +180,24 @@ export default function MortSubitePage() {
       if (res.ok) {
         setQuestions(data);
         setCurrentIndex(0);
+        setTimeLeft(TIME_LIMIT);
       } else {
-        // Si l'API refuse de donner la suite, on arrête (sécurité)
-        setGameState("gameover");
+        handleGameOver();
       }
     } catch (error) {
-      setGameState("gameover");
+      handleGameOver();
     }
   };
 
-  // ================= ECRANS =================
-
   if (gameState === "loading") {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-red-500 border-t-transparent"></div>
-        <p className="mt-4 animate-pulse text-lg font-bold text-red-500">
-          Préparation de l'arène...
-        </p>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-red-200 border-t-red-600 dark:border-red-900 dark:border-t-red-400"></div>
+          <p className="text-slate-500 dark:text-slate-400 animate-pulse font-medium">
+            Préparation de l'arène...
+          </p>
+        </div>
       </div>
     );
   }
@@ -222,7 +270,7 @@ export default function MortSubitePage() {
               href="/"
               className="rounded-xl bg-white/10 py-4 font-bold text-white transition-all hover:bg-white/20 active:scale-95"
             >
-              Quitter
+              Quitter l'arène
             </Link>
           </div>
         </div>
@@ -230,68 +278,110 @@ export default function MortSubitePage() {
     );
   }
 
+  const progress = ((currentIndex + 1) / questions.length) * 100;
+  const strokeDashoffset =
+    CIRCUMFERENCE - (timeLeft / TIME_LIMIT) * CIRCUMFERENCE;
+  const isTimeWarning = timeLeft <= 5;
   const question = questions[currentIndex];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
-      {/* En-tête Mort Subite */}
-      <div className="mb-8 flex items-center justify-between rounded-2xl bg-red-500/10 p-4 border border-red-500/20">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30">
-            💀
-          </span>
-          <div>
-            <h1 className="text-sm font-black uppercase tracking-widest text-red-500">
-              Mort Subite
-            </h1>
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              1 seule vie
-            </p>
+    <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 transition-colors duration-300">
+      <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800 relative">
+        <div className="bg-red-50 dark:bg-red-900/10 px-6 py-4 border-b border-red-100 dark:border-red-900/30">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-red-500 dark:text-red-400 flex items-center gap-2">
+                <span>💀</span> Mort Subite
+              </div>
+              <div className="mt-1 text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                Série :{" "}
+                <span className="text-slate-800 dark:text-white font-black text-sm">
+                  {score} 🔥
+                </span>
+              </div>
+            </div>
+
+            <div className="relative flex items-center justify-center h-12 w-12 shrink-0">
+              <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r={RADIUS}
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="transparent"
+                  className="text-slate-200 dark:text-slate-700"
+                />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r={RADIUS}
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="transparent"
+                  strokeDasharray={CIRCUMFERENCE}
+                  strokeDashoffset={strokeDashoffset}
+                  className={`transition-all duration-1000 ease-linear ${isTimeWarning ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" : "text-orange-500"}`}
+                />
+              </svg>
+              <span
+                className={`absolute text-sm font-black transition-colors ${isTimeWarning ? "text-red-500 animate-pulse scale-110" : "text-slate-700 dark:text-slate-200"}`}
+              >
+                {timeLeft}
+              </span>
+            </div>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+            <div
+              className="h-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            ></div>
           </div>
         </div>
-        <div className="text-right">
-          <span className="text-sm font-bold uppercase text-slate-500 dark:text-slate-400">
-            Série en cours
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {score} 🔥
+
+        <div className="p-6 md:p-8">
+          <div
+            key={currentIndex}
+            className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500"
+          >
+            <h2 className="text-center text-2xl font-black leading-tight text-slate-800 dark:text-white md:text-3xl italic">
+              "{question?.question}"
+            </h2>
+            <div className="grid gap-3">
+              {question?.answers.map((ans, index) => {
+                const isSelected = selectedAnswerIndex === index;
+                const isLocked = isChecking;
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(index)}
+                    disabled={isLocked}
+                    className={`group flex w-full items-center rounded-xl border-2 p-4 text-left font-semibold transition-all duration-200
+                      ${
+                        isSelected
+                          ? "border-orange-500 bg-orange-50 text-orange-700 ring-4 ring-orange-500/20 scale-[0.98] dark:border-orange-400 dark:bg-orange-900/40 dark:text-orange-300"
+                          : isLocked
+                            ? "border-slate-100 bg-white/50 text-slate-400 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-600 opacity-70"
+                            : "border-slate-100 bg-white text-slate-600 hover:border-orange-300 hover:bg-orange-50/50 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-orange-500/50 dark:hover:bg-orange-900/20 active:scale-[0.98]"
+                      }`}
+                  >
+                    <span
+                      className={`mr-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-colors
+                      ${isSelected ? "bg-orange-500 text-white dark:bg-orange-500" : "bg-slate-100 text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 dark:bg-slate-700 dark:text-slate-400 dark:group-hover:bg-orange-900/50 dark:group-hover:text-orange-300"}`}
+                    >
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    {ans.text}
+                    {isSelected && isChecking && (
+                      <span className="ml-auto h-5 w-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Question */}
-      <div className="mb-8 rounded-3xl bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-10 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-2xl font-black leading-tight text-slate-900 dark:text-white sm:text-3xl text-center">
-          {question?.question}
-        </h2>
-      </div>
-
-      {/* Réponses */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {question?.answers.map((answer, index) => {
-          let btnClass =
-            "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20";
-
-          if (isChecking && selectedAnswer === answer.text) {
-            // En attente de la validation serveur, on met en surbrillance neutre
-            btnClass =
-              "bg-slate-100 dark:bg-slate-800 border-slate-400 dark:border-slate-600 scale-95 opacity-80 animate-pulse";
-          } else if (isChecking) {
-            btnClass =
-              "opacity-50 cursor-not-allowed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400";
-          }
-
-          return (
-            <button
-              key={index}
-              onClick={() => handleAnswer(answer.text)}
-              disabled={isChecking}
-              className={`group relative flex min-h-[5rem] items-center justify-center rounded-2xl border-2 p-4 text-center text-lg font-bold transition-all ${btnClass}`}
-            >
-              {answer.text}
-            </button>
-          );
-        })}
       </div>
     </div>
   );
