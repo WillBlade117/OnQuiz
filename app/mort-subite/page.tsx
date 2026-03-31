@@ -109,7 +109,6 @@ export default function MortSubitePage() {
     setSelectedAnswerIndex(answerIndex);
 
     try {
-      // 1. On interroge la route serveur pour la validation
       const res = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,7 +119,6 @@ export default function MortSubitePage() {
       });
       const data = await res.json();
 
-      // 2. On mémorise la réponse pour l'enregistrement du score final
       const newAnswers = [
         ...userAnswers,
         { questionId: questions[currentIndex].id, answerIndex },
@@ -155,7 +153,6 @@ export default function MortSubitePage() {
     setGameState("gameover");
     setIsChecking(false);
 
-    // 3. On sauvegarde le score, ce qui déduit la partie gratuite
     try {
       await fetch("/api/scores", {
         method: "POST",
@@ -278,7 +275,6 @@ export default function MortSubitePage() {
     );
   }
 
-  const progress = ((currentIndex + 1) / questions.length) * 100;
   const strokeDashoffset =
     CIRCUMFERENCE - (timeLeft / TIME_LIMIT) * CIRCUMFERENCE;
   const isTimeWarning = timeLeft <= 5;
@@ -287,8 +283,9 @@ export default function MortSubitePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12 transition-colors duration-300">
       <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/60 dark:shadow-none ring-1 ring-slate-100 dark:ring-slate-800 relative">
+        {/* On enlève le pb-0 et la barre de progression en dessous */}
         <div className="bg-red-50 dark:bg-red-900/10 px-6 py-4 border-b border-red-100 dark:border-red-900/30">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-red-500 dark:text-red-400 flex items-center gap-2">
                 <span>💀</span> Mort Subite
@@ -330,12 +327,6 @@ export default function MortSubitePage() {
                 {timeLeft}
               </span>
             </div>
-          </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-            <div
-              className="h-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            ></div>
           </div>
         </div>
 
