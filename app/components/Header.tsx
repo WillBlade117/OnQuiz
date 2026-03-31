@@ -14,10 +14,13 @@ export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [balance, setBalance] = useState({ credits: 0, freeGamesLeft: 0 });
+  const [balance, setBalance] = useState({
+    credits: 0,
+    freeGamesLeft: 0,
+    freeSuddenDeathLeft: 0,
+  });
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  // Fermer le menu déroulant du profil si on clique à côté
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -28,7 +31,6 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Empêcher le scroll du body quand la modale est ouverte
   useEffect(() => {
     if (isLoginModalOpen) {
       document.body.style.overflow = "hidden";
@@ -40,7 +42,6 @@ export default function Header() {
     };
   }, [isLoginModalOpen]);
 
-  // Charger le solde quand on ouvre le menu
   useEffect(() => {
     if (isMenuOpen && session) {
       setIsLoadingBalance(true);
@@ -117,10 +118,17 @@ export default function Header() {
                           ) : (
                             <>
                               <span
-                                title="Parties gratuites restantes"
+                                title="Parties classiques gratuites"
                                 className="flex items-center gap-1"
                               >
                                 ⚡ {balance.freeGamesLeft}/3
+                              </span>
+                              {/* AJOUT ICI : L'indicateur Mort Subite */}
+                              <span
+                                title="Partie Mort Subite gratuite"
+                                className="flex items-center gap-1 text-red-600 dark:text-red-400"
+                              >
+                                💀 {balance.freeSuddenDeathLeft}/1
                               </span>
                               <span
                                 title="Vos crédits"
@@ -205,13 +213,11 @@ export default function Header() {
       {/* POP-UP (MODALE) DE CONNEXION */}
       {isLoginModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          {/* Overlay invisible cliquable pour fermer la modale en cliquant à côté */}
           <div
             className="absolute inset-0"
             onClick={() => setIsLoginModalOpen(false)}
           ></div>
 
-          {/* Contenu de la modale */}
           <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in zoom-in-95 duration-200">
             <button
               onClick={() => setIsLoginModalOpen(false)}
@@ -244,7 +250,6 @@ export default function Header() {
               tous les jours.
             </p>
 
-            {/* Vrai bouton Discord */}
             <button
               onClick={() => signIn("discord")}
               className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#5865F2] px-5 py-4 font-bold text-white shadow-lg transition-all hover:bg-[#4752C4] hover:shadow-indigo-500/25 active:scale-95"
