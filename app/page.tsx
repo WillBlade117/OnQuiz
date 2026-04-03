@@ -3,13 +3,11 @@ import Image from "next/image";
 import { THEMES } from "../lib/constants";
 
 export default function Home() {
-  // On sépare les thèmes pour créer la structure 4 - 2 - 4
   const topThemes = THEMES.slice(0, 4);
   const middleLeftTheme = THEMES.slice(4, 5)[0];
   const middleRightTheme = THEMES.slice(5, 6)[0];
   const bottomThemes = THEMES.slice(6, 10);
 
-  // Fonction utilitaire pour rendre une carte thème classique
   const renderThemeCard = (theme: (typeof THEMES)[0]) => (
     <Link
       key={theme.name}
@@ -49,15 +47,14 @@ export default function Home() {
             </span>
           </h1>
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300 md:text-3xl">
-            10 thèmes | 1000+ questions
+            Prouvez votre valeur. Dominez le classement.
           </h2>
           <div className="mx-auto mt-6 h-1.5 w-24 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50"></div>
           <p className="mt-8 text-lg font-medium text-slate-800 dark:text-slate-300">
-            Prêt à relever le défi ? Choisissez votre mode de jeu :
+            L'arène du savoir vous attend. Choisissez votre discipline :
           </p>
         </div>
 
-        {/* La fameuse grille magique (4 colonnes sur PC, 2 sur mobile) */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-6 animate-in fade-in zoom-in-95 duration-1000 delay-150">
           {/* LIGNE 1 : 4 Thèmes */}
           {topThemes.map(renderThemeCard)}
@@ -94,13 +91,13 @@ export default function Home() {
 
         <div className="mt-20 flex flex-col items-center gap-4 border-t border-slate-300/50 pt-12 text-center dark:border-slate-800/50">
           <p className="text-sm font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-500">
-            Compétition en temps réel
+            Seuls les meilleurs entreront dans l'histoire
           </p>
           <Link
             href="/classement"
             className="group flex items-center gap-2 rounded-full bg-slate-900 px-8 py-3 font-bold text-white transition-all hover:bg-blue-600 hover:shadow-xl hover:shadow-blue-500/20 active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-50"
           >
-            🏆 Voir le classement
+            🏆 Consulter le Panthéon
           </Link>
         </div>
       </main>
